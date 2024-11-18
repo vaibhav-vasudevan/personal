@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vaibhav Vasudevan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Georgia:wght@400&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Georgia', serif;
+      background: linear-gradient(to bottom, #f7efe5, #e8d5b5);
+      color: #1c1c1c;
+      text-align: left;
+      line-height: 1.6;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .content-wrapper {
+      position: relative;
+      z-index: 1;
+      padding: 20px;
+    }
+
+    section {
+      margin: 40px auto;
+      max-width: 800px;
+      background-color: transparent;
+      padding: 0;
+      border-radius: 0;
+      backdrop-filter: none;
+      box-shadow: none;
+    }
+
+    a {
+      color: #b35454;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    header {
+      margin-top: 50px;
+      font-size: 2.5em;
+      text-align: center;
+    }
+
+    .links {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    h2 {
+      font-weight: normal;
+      font-size: 1.5em;
+      margin-bottom: 20px;
+    }
+
+    ul {
+      list-style-type: disc;
+      padding-left: 40px;
+    }
+
+    ul li {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas id="backgroundCanvas"></canvas>
+    <canvas id="particleCanvas"></canvas>
+  </div>
+
+  <div class="content-wrapper">
+    <header>Vaibhav Vasudevan</header>
+
+    <div class="links">
+      <a href="life.html">life</a> |
+      <a href="projects.html">projects</a> |
+      <a href="thoughts.html">thoughts</a> |
+      <a href="findmy.html">find my</a>
+    </div>
+
+    <section>
+      <h2>about me</h2>
+      <p>I grew up in <a href="#" id="openModalOmaha">Omaha, Nebraska</a> until 6th grade. I moved to NoVA, went to TJ, and currently study physics at UMD. I enjoy playing the <a href="#" id="openModalViolin">carnatic violin</a> (south Indian classical music), consuming all sorts of content, and hanging out with my <a href="#" id="openModalFriends">friends</a>.</p>
+    </section>
+
+    <section id="life-section">
+      <h2>stuff i've done</h2>
+      <ul>
+        <li>sold my soul doing consulting for startups — definitely a learning experience but not ideal if you want to feel fulfilled and make an impact</li>
+        <li>worked with my friends to build a photonic semiconductor chip startup <a href="https://www.procyoncorp.io/">(Procyon Photonics)</a>; later pivoted to building an AI hardware engineer <a href="https://getinstachip.com/">(Instachip)</a></li>
+        <li>Harvard sociology project under <a href="https://sociology.fas.harvard.edu/people/adaner-usmani">Dr. Usmani</a> on historical incarceration and got to visit a jail</li>
+        <li>interned at WUSTL Olin Business School where I did data scraping to extract racial ethnicity info based on zip codes (and did a little thing on the side where I used Selenium to scrape clothes at good prices for my mentor!)</li>
+        <li>made an incubator for high school students</li>
+      </ul>
+    </section>
+
+    <section id="life-section">
+      <h2>stuff i want to do</h2>
+      <ul>
+        <li>grow my own potatoes + farm some goats on the mountaintops of Switzerland</li>
+        <li>drive across a random desert like Mad Max</li>
+        <li>skydive at night during a full moon</li>
+        <li>ride a hippo</li>
+      </ul>
+    </section>
+  </div>
+
+  <script>
+    // sand particle particle class
+    class Particle {
+      constructor(x, y, canvas, system) {
+        this.x = x;
+        this.y = y;
+        this.canvas = canvas;
+        this.system = system;
+        this.size = Math.random() * 2 + 1.5; // size
+        this.baseSpeed = Math.random() * 0.6 + 0.4; // speed
+        this.speed = this.baseSpeed;
+        this.angle = Math.random() * Math.PI * 2;
+        this.alpha = Math.random() * 0.5 + 0.5; //  opacity
+        this.friction = 0.98;
+        this.gravity = 0.05;
+        this.windForce = 0;
+        this.velocityX = Math.cos(this.angle) * this.speed;
+        this.velocityY = Math.sin(this.angle) * this.speed;
+        this.lifetime = Math.random() * 500 + 300; // lifetime
+        this.age = 0;
+        this.isRising = Math.random() > 0.5;
+      }
+
+      update() {
+        this.age++;
+
+        // wind force from the system
+        this.velocityX += this.system.currentWindForce;
+
+        if (this.isRising) {
+          // rising particles 
+          this.velocityY -= 0.02; // upward force
+          this.alpha = Math.max(0.1, 0.5 * (1 - this.age / this.lifetime));
+        } else {
+          // falling particles behavior
+          const surfaceHeight = this.system.getDuneHeight(this.x);
+
+          if (Math.abs(this.y - surfaceHeight) < 5) {
+            this.velocityX *= 0.9;
+            this.velocityY *= 0.9;
+
+            if (Math.random() > 0.97) { // increased chance to rise
+              this.isRising = true;
+              this.velocityY = -this.baseSpeed * 2;
+              this.age = 0;
+            }
+          } else {
+            this.velocityY += this.gravity;
+          }
+        }
+
+        this.velocityX *= this.friction;
+        this.velocityY *= this.friction;
+
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+
+        // Reset if out of bounds or too old
+        if (
+          this.age > this.lifetime ||
+          this.x < 0 ||
+          this.x > this.canvas.width ||
+          this.y < 0 ||
+          this.y > this.canvas.height
+        ) {
+          this.reset();
+        }
+      }
+
+      reset() {
+        const spawnPoint = this.getSpawnPoint();
+        this.x = spawnPoint.x;
+        this.y = spawnPoint.y;
+        this.age = 0;
+        this.isRising = Math.random() > 0.5;
+        this.angle = Math.random() * Math.PI * 2;
+        this.speed = this.baseSpeed;
+        this.velocityX = Math.cos(this.angle) * this.speed;
+        this.velocityY = Math.sin(this.angle) * this.speed;
+        this.alpha = Math.random() * 0.5 + 0.5;
+      }
+
+      getSpawnPoint() {
+        const x = Math.random() * this.canvas.width;
+        let y = this.system.getDuneHeight(x);
+        if (this.isRising) {
+          y -= Math.random() * 50; // Spawn higher above the dune
+        }
+        return { x, y };
+      }
+
+      draw(ctx) {
+        ctx.fillStyle = `rgba(194, 178, 128, ${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // ParticleSystem class to manage all particles and animations
+    class ParticleSystem {
+      constructor() {
+        this.particleCanvas = document.getElementById('particleCanvas');
+        this.backgroundCanvas = document.getElementById('backgroundCanvas');
+        this.particleCtx = this.particleCanvas.getContext('2d');
+        this.backgroundCtx = this.backgroundCanvas.getContext('2d');
+        this.particles = [];
+        this.duneTops = [];
+        this.duneBottoms = [];
+        this.highestDuneTop = 0;
+        this.lowestDuneBottom = 0;
+
+        // Wind properties
+        this.currentWindForce = 0;
+        this.windChangeInterval = 200; // Frames between wind changes
+        this.windTimer = 0;
+
+        this.resize();
+        this.setupEventListeners();
+        this.animate();
+      }
+
+      resize() {
+        const updateCanvas = (canvas) => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          canvas.style.width = `${window.innerWidth}px`;
+          canvas.style.height = `${window.innerHeight}px`;
+        };
+
+        updateCanvas(this.particleCanvas);
+        updateCanvas(this.backgroundCanvas);
+
+        this.drawBackground();
+        this.initParticles();
+      }
+
+      initParticles() {
+        this.particles = [];
+        const numberOfParticles = Math.floor(
+          (this.particleCanvas.width * this.particleCanvas.height) / 2000
+        );
+
+        for (let i = 0; i < numberOfParticles; i++) {
+          const x = Math.random() * this.particleCanvas.width;
+          const y = this.getDuneHeight(x);
+          this.particles.push(new Particle(x, y, this.particleCanvas, this));
+        }
+      }
+
+      getDuneHeight(x) {
+        const height = this.backgroundCanvas.height;
+        const baseHeight = height * 0.82;
+        const amplitude = height * 0.15;
+        return (
+          baseHeight +
+          amplitude * Math.sin(x * 0.002) +
+          amplitude * 0.1 * Math.sin(x * 0.005)
+        );
+      }
+
+      setupEventListeners() {
+        window.addEventListener('resize', () => this.resize());
+      }
+
+      drawBackground() {
+        const ctx = this.backgroundCtx;
+        const width = this.backgroundCanvas.width;
+        const height = this.backgroundCanvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, '#f4e4d4');
+        gradient.addColorStop(1, '#e8d5c3');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw two minimalistic suns
+        // First sun
+        const sunGradient1 = ctx.createRadialGradient(
+          width * 0.25,
+          height * 0.2,
+          0,
+          width * 0.25,
+          height * 0.2,
+          80
+        );
+        sunGradient1.addColorStop(0, 'rgba(255, 223, 128, 0.5)');
+        sunGradient1.addColorStop(1, 'rgba(255, 223, 128, 0)');
+        ctx.beginPath();
+        ctx.arc(width * 0.25, height * 0.2, 80, 0, Math.PI * 2);
+        ctx.fillStyle = sunGradient1;
+        ctx.fill();
+
+        // Second sun
+        const sunGradient2 = ctx.createRadialGradient(
+          width * 0.75,
+          height * 0.25,
+          0,
+          width * 0.75,
+          height * 0.25,
+          60
+        );
+        sunGradient2.addColorStop(0, 'rgba(255, 223, 128, 0.4)');
+        sunGradient2.addColorStop(1, 'rgba(255, 223, 128, 0)');
+        ctx.beginPath();
+        ctx.arc(width * 0.75, height * 0.25, 60, 0, Math.PI * 2);
+        ctx.fillStyle = sunGradient2;
+        ctx.fill();
+
+        // Draw dunes
+        const numLayers = 4;
+        const baseHeights = [0.82, 0.72, 0.62, 0.52];
+
+        this.duneTops = [];
+        this.duneBottoms = [];
+
+        for (let layer = numLayers - 1; layer >= 0; layer--) {
+          const baseHeight = height * baseHeights[layer];
+          const amplitude = height * (0.15 - layer * 0.025);
+
+          this.duneTops[layer] = baseHeight - amplitude;
+          this.duneBottoms[layer] = baseHeight + amplitude;
+
+          ctx.beginPath();
+          let points = [];
+          const segments = 150;
+
+          for (let i = 0; i <= segments; i++) {
+            const x = (width * i) / segments;
+            const xOffset = (layer * width) / 4;
+
+            const y =
+              baseHeight +
+              amplitude * Math.sin((x + xOffset) * 0.002 + layer * 0.5) +
+              amplitude * 0.4 * Math.sin((x + xOffset) * 0.004 + layer);
+
+            points.push({ x, y });
+          }
+
+          ctx.moveTo(points[0].x, points[0].y);
+
+          for (let i = 1; i < points.length - 2; i++) {
+            const xc = (points[i].x + points[i + 1].x) / 2;
+            const yc = (points[i].y + points[i + 1].y) / 2;
+            ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+          }
+
+          const lastPoints = points.slice(-2);
+          ctx.quadraticCurveTo(
+            lastPoints[0].x,
+            lastPoints[0].y,
+            lastPoints[1].x,
+            lastPoints[1].y
+          );
+
+          const duneGradient = ctx.createLinearGradient(
+            0,
+            baseHeight - amplitude,
+            0,
+            baseHeight + amplitude
+          );
+
+          if (layer === 0) {
+            duneGradient.addColorStop(0, `rgba(216, 197, 176, 0.7)`);
+            duneGradient.addColorStop(0.5, `rgba(203, 183, 164, 0.6)`);
+            duneGradient.addColorStop(1, `rgba(189, 169, 150, 0.8)`);
+          } else {
+            duneGradient.addColorStop(0, `rgba(206, 187, 166, 0.6)`);
+            duneGradient.addColorStop(0.5, `rgba(193, 173, 152, 0.5)`);
+            duneGradient.addColorStop(1, `rgba(179, 159, 138, 0.7)`);
+          }
+
+          ctx.lineTo(width, height);
+          ctx.lineTo(0, height);
+          ctx.closePath();
+          ctx.fillStyle = duneGradient;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(225, 206, 185, 0.2)`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        this.highestDuneTop = Math.min(...this.duneTops);
+        this.lowestDuneBottom = Math.max(...this.duneBottoms);
+      }
+
+      updateWind() {
+        this.windTimer++;
+        if (this.windTimer > this.windChangeInterval) {
+          // Simulate sudden gusts of wind
+          this.currentWindForce = (Math.random() - 0.5) * 0.1;
+          this.windTimer = 0;
+          // Randomly change the wind change interval
+          this.windChangeInterval = Math.floor(Math.random() * 300 + 100);
+        }
+      }
+
+      animate() {
+        this.particleCtx.clearRect(
+          0,
+          0,
+          this.particleCanvas.width,
+          this.particleCanvas.height
+        );
+
+        // Update wind
+        this.updateWind();
+
+        // Update and draw particles
+        this.particles.forEach((particle) => {
+          particle.update();
+          particle.draw(this.particleCtx);
+        });
+
+        requestAnimationFrame(() => this.animate());
+      }
+    }
+
+    // Initialize the particle system when the page loads
+    window.addEventListener('load', () => {
+      new ParticleSystem();
+    });
+  </script>
+</body>
+</html>
